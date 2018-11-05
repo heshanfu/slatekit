@@ -14,12 +14,9 @@
 package slatekit.entities.core
 
 import slatekit.common.DateTime
-import slatekit.common.serialization.Serializer
-import slatekit.meta.Serialization
-import slatekit.meta.models.Model
 
-interface Entity {
 
+interface EntityWithKey<TId> {
     /**
      * gets the id
      *
@@ -30,14 +27,26 @@ interface Entity {
      *
      * @return
      */
-    fun identity(): Long
+    fun identity(): TId
 
     /**
      * whether or not this entity is persisted.
      * @return
      */
-    fun isPersisted(): Boolean = identity() > 0
+    fun isPersisted(): Boolean {
+        val id = identity()
+
+        return when(id) {
+            is Int -> id > 0
+            is Long -> id > 0L
+            is String -> !id.isEmpty()
+            else -> false
+        }
+    }
 }
+
+interface Entity : EntityWithKey<Long>
+
 
 /**
  * Base entity interface that must define if it is persisted or not
@@ -118,39 +127,3 @@ interface EntityWithShard {
 interface EntityWithMeta
     : EntityWithTime, EntityWithUser, EntityWithUUID
 
-interface EntityModel {
-
-    /**
-     * Gets this entity as a generic Model schema, which holds all
-     * the fields defined in the model for persistence.
-     */
-    val model: Model
-
-    /**
-     * Serializes this entity to json
-     * {
-     *   "name" : "user1",
-     *   "email": "user1@abc.com"
-     * }
-     */
-    fun toJson(): String = serialize(Serialization.json())
-
-    /**
-     * Serializes this entity to a csv record
-     * name   ,  email
-     * "user1",  user1@abc.com
-     */
-    fun toCsv(): String = serialize(Serialization.csv())
-
-    /**
-     * Serializes this entity to a props structure
-     * name : user1
-     * email: user1@abc.com
-     */
-    fun toProps(): String = serialize(Serialization.props())
-
-    /**
-     * Serializes this entity using the specific serializer supplied.
-     */
-    fun serialize(serializer: Serializer): String = serializer.serialize(this)
-}
